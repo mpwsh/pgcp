@@ -152,52 +152,51 @@ fn build_source_cols_and_joins(
     updates: &Option<Vec<(String, String, String, String)>>,
 ) -> (String, String) {
     let update_cols = get_update_source_columns(updates);
+
     let (from_cols, joins): (Vec<_>, Vec<_>) = cols
         .iter()
         .map(|c| {
-            let (table_name, column_name, join_select) = if c.source.contains('/') {
-                let split: Vec<&str> = c.source.split('/').collect();
-                let table_column: Vec<&str> = split[0].split('.').collect();
-                (table_column[0], table_column[1], Some(split[1]))
-            } else {
-                (&table.source[..], &c.source[..], None)
-            };
-
-            let from_col = match join_select {
-                Some(select) => format!(
+            let source = &c.source;
+            if source.contains('/') {
+                let mut split = source.split('/');
+                let join_part = split.next().unwrap();
+                let select_part = split.next().unwrap();
+                let (select_table, select_column) = select_part
+                    .split_once('.')
+                    .unwrap_or((table.source.as_str(), select_part));
+                let from_col = format!(
                     "{}.{} AS {}",
-                    table_name,
-                    select,
-                    c.source.replace(['/', '.'], "_")
-                ),
-                None => format!("{}.{}", table_name, c.source.clone()),
-            };
-
-            let join = if c.source.contains('/') {
-                Some(format!(
+                    select_table,
+                    select_column,
+                    source.replace(['/', '.'], "_")
+                );
+                let (join_table, join_column) = join_part
+                    .split_once('.')
+                    .unwrap_or((table.source.as_str(), join_part));
+                let join = format!(
                     "INNER JOIN {} ON {}.{} = {}.{}",
-                    table_name, table.source, column_name, table_name, column_name
-                ))
+                    select_table, join_table, join_column, select_table, join_column
+                );
+                (from_col, Some(join))
             } else {
-                None
-            };
-
-            (from_col, join)
+                (format!("{}.{}", table.source, source), None)
+            }
         })
         .unzip();
-    let mut all_cols = from_cols;
-    all_cols.extend(update_cols);
 
-    if let Some(static_values) = static_cols {
-        let static_cols: Vec<String> = static_values
-            .iter()
-            .map(|(col, value)| format!("'{}' AS {}", value, col))
-            .collect();
-        all_cols.extend(static_cols);
-    }
+    let all_cols = from_cols
+        .into_iter()
+        .chain(update_cols)
+        .chain(
+            static_cols
+                .iter()
+                .flatten()
+                .map(|(col, value)| format!("'{}' AS {}", value, col)),
+        )
+        .collect::<Vec<_>>()
+        .join(", ");
 
-    (
-        all_cols.join(", "),
-        joins.into_iter().flatten().collect::<Vec<_>>().join(" "),
-    )
+    let all_joins = joins.into_iter().flatten().collect::<Vec<_>>().join(" ");
+
+    (all_cols, all_joins)
 }

@@ -1,5 +1,5 @@
 [package]
-name = "pgtransfer"
+name = "pgcp"
 version = "0.1.0"
 edition = "2021"
 authors = ["mpw <x@mpw.sh>"]

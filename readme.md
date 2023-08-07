@@ -1,6 +1,6 @@
 ## Overview
 
-`pgtransfer` is a simple CLI tool to copy specific column data from a source table with different schemas/columns.
+`pgcp` is a simple CLI tool to copy specific column data from a source table with different schemas/columns.
 
 The destination table won't be created before copying, you must create it beforehand using `psql` or similar. Also, this tool requires a reasonable understanding of the structure of your source and destination databases to ensure accurate mapping.
 
@@ -8,7 +8,7 @@ Data will be converted to string and then inserted building a simple `INSERT` sq
 
 ## Usage
 
-`pgtransfer` uses environment variables for source `PG_FROM_DATABASE` and destination `PG_TO_DATABASE` database connections.
+`pgcp` uses environment variables for source `PG_FROM_DATABASE` and destination `PG_TO_DATABASE` database connections.
 You can also use args `--from` and `--to` to accomplish the same.
 
 ```bash
@@ -22,7 +22,7 @@ A more 'complex' column mapping is demonstrated in the below example, with `meta
 ## Example
 
 ```bash
-pgtransfer --table collections:collections \
+pgcp --table collections:collections \
 --col id:id --col metadata_jsons.id/name:collections.id/name \
 --col project_id:project_id --col created_at:timestamp \
 --static acolumn=some_data
@@ -57,13 +57,13 @@ Clone and compile/install.
 
 ```bash
 ## Clone the repository
-git clone https://github.com/mpwsh/pgtransfer
+git clone https://github.com/mpwsh/pgcp
 ## cd into the folder and install with cargo
-cd pgtransfer
+cd pgcp
 cargo install --path .
 ## or just build and run from ./target/debug
 cargo build
-./target/debug/pgtransfer
+./target/debug/pgcp
 ```
 
 Use at your own risk. Error handling is practically non-existent, but postgres will complain if somethings wrong.

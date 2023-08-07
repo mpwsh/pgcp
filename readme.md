@@ -22,7 +22,10 @@ A more 'complex' column mapping is demonstrated in the below example, with `meta
 ## Example
 
 ```bash
-pgtransfer --table collections:collections --col id:id --col metadata_jsons.id/name:collections.id/name --static column=static_value --col project_id:project_id --col created_at:timestamp
+pgtransfer --table collections:collections \
+--col id:id --col metadata_jsons.id/name:collections.id/name \
+--col project_id:project_id --col created_at:timestamp \
+--static acolumn=some_data
 ```
 
 In this example, collections table from the source database is mapped to the collections table in the destination database. The `id` column in the source will be copied to the `id` column in the destination, same for `project_id`. `created_at` will be copied into `timestamp` column in the destination DB.

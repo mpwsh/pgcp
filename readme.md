@@ -1,6 +1,6 @@
 ## Overview
 
-`pgtransfer` is a simple CLI tool to move specific column data between tables with different schemas/columns.
+`pgtransfer` is a simple CLI tool to copy specific column data from a source table with different schemas/columns.
 
 The destination table won't be created before copying, you must create it beforehand using `psql` or similar. Also, this tool requires a reasonable understanding of the structure of your source and destination databases to ensure accurate mapping.
 

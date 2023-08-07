@@ -20,6 +20,7 @@ async fn main() -> Result<()> {
         &opt.table,
         &opt.columns,
         &opt.static_cols,
+        &opt.updates,
     )
     .await
 }
@@ -30,12 +31,13 @@ async fn transfer_data(
     table: &StringPair,
     cols: &[StringPair],
     static_cols: &Option<Vec<(String, String)>>,
+    updates: &Option<Vec<(String, String, String, String)>>,
 ) -> Result<()> {
     // Connect to source
     let source_client = connect(from).await?;
 
-    let (from_cols_string, join_clauses) = build_source_cols_and_joins(table, cols, static_cols);
-
+    let (from_cols_string, join_clauses) =
+        build_source_cols_and_joins(table, cols, static_cols, updates);
     // Build the query
     let query = format!(
         "SELECT {} FROM {} {}",
@@ -49,8 +51,11 @@ async fn transfer_data(
     // Now connect to destination
     let dest_client = connect(to).await?;
 
-    let to_cols_string = build_dest_cols(cols, static_cols);
-    let values_clause = build_values_clause(&rows);
+    let to_cols_string = build_dest_cols(cols, static_cols, updates);
+
+    info!("{to_cols_string}");
+    let values_clause = build_values_clause(&rows, updates);
+
     // Build the SQL query
     let query = format!(
         "INSERT INTO {} ({}) VALUES {}",
@@ -64,8 +69,12 @@ async fn transfer_data(
     Ok(())
 }
 
-fn build_dest_cols(cols: &[StringPair], static_cols: &Option<Vec<(String, String)>>) -> String {
-    let to_cols: Vec<String> = cols
+fn build_dest_cols(
+    cols: &[StringPair],
+    static_cols: &Option<Vec<(String, String)>>,
+    updates: &Option<Vec<(String, String, String, String)>>,
+) -> String {
+    let mut dest_cols: Vec<String> = cols
         .iter()
         .map(|c| {
             if c.dest.contains('/') {
@@ -77,17 +86,24 @@ fn build_dest_cols(cols: &[StringPair], static_cols: &Option<Vec<(String, String
         })
         .collect();
 
-    let mut all_cols = to_cols;
-    // Add static columns
     if let Some(static_values) = static_cols {
-        let static_cols: Vec<String> = static_values.iter().map(|(col, _)| col.clone()).collect();
-        all_cols.extend(static_cols);
+        dest_cols.extend(static_values.iter().map(|(col, _)| col.clone()));
     }
 
-    all_cols.join(", ")
+    if let Some(upd) = updates {
+        for (_, _, dest_col, _) in upd {
+            if !dest_cols.contains(dest_col) {
+                dest_cols.push(dest_col.clone());
+            }
+        }
+    }
+    dest_cols.join(", ")
 }
 
-fn build_values_clause(rows: &[Row]) -> String {
+fn build_values_clause(
+    rows: &[Row],
+    updates: &Option<Vec<(String, String, String, String)>>,
+) -> String {
     rows.iter()
         .map(|row| {
             format!(
@@ -95,7 +111,15 @@ fn build_values_clause(rows: &[Row]) -> String {
                 row.columns()
                     .iter()
                     .map(|column| {
-                        let value = any_to_string(row, column.name());
+                        let mut value = any_to_string(row, column.name());
+                        // Apply updates if necessary
+                        if let Some(upd) = updates {
+                            for (col, old_val, _, new_val) in upd {
+                                if col == column.name() && value == *old_val {
+                                    value = new_val.clone();
+                                }
+                            }
+                        }
                         format!("'{}'", value.replace('\'', "''"))
                     })
                     .collect::<Vec<String>>()
@@ -106,11 +130,28 @@ fn build_values_clause(rows: &[Row]) -> String {
         .join(", ")
 }
 
+fn get_update_source_columns(
+    updates: &Option<Vec<(String, String, String, String)>>,
+) -> Vec<String> {
+    updates
+        .as_ref()
+        .map(|upd| {
+            upd.iter()
+                .map(|(col, _, _, _)| col.clone())
+                .collect::<std::collections::HashSet<String>>()
+                .into_iter()
+                .collect::<Vec<String>>()
+        })
+        .unwrap_or_else(Vec::new)
+}
+
 fn build_source_cols_and_joins(
     table: &StringPair,
     cols: &[StringPair],
     static_cols: &Option<Vec<(String, String)>>,
+    updates: &Option<Vec<(String, String, String, String)>>,
 ) -> (String, String) {
+    let update_cols = get_update_source_columns(updates);
     let (from_cols, joins): (Vec<_>, Vec<_>) = cols
         .iter()
         .map(|c| {
@@ -144,9 +185,9 @@ fn build_source_cols_and_joins(
             (from_col, join)
         })
         .unzip();
-
     let mut all_cols = from_cols;
-    // Handle static columns
+    all_cols.extend(update_cols);
+
     if let Some(static_values) = static_cols {
         let static_cols: Vec<String> = static_values
             .iter()

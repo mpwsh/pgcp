@@ -34,7 +34,7 @@ The `--static column=static_value` option allows you to specify a static column 
 
 ## Install / Compile from source
 
-Install Rust following [these](https://www.rust-lang.org/learn/get-started) instructions
+Install Rust by following the instructions in [the getting started page](https://www.rust-lang.org/learn/get-started)
 
 Clone and compile/install.
 

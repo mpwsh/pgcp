@@ -36,13 +36,17 @@ This results in the following SQL queries:
 Read from source:
 
 ```sql
-SELECT collections.id, metadata_jsons.name AS metadata_jsons_id_name, project_id, created_at, 'some_data' AS acolumn FROM collections INNER JOIN metadata_jsons ON collections.id = metadata_jsons.id
+SELECT collections.id, metadata_jsons.name AS metadata_jsons_id_name,
+project_id, created_at, 'some_data' AS acolumn FROM collections
+INNER JOIN metadata_jsons ON collections.id = metadata_jsons.id
 ```
 
 Write to dest:
 
 ```sql
-INSERT INTO collections (id, name, project_id, timestamp, acolumn) VALUES ('2f7f1a90-f6a3-4f94-83b6-77bc9e289c2d', 'Demo', 'da6cf455-971c-46a4-9ed7-fe0e9b5f5548', '2023-03-07 16:57:27.762190 UTC', 'some_data')
+INSERT INTO collections (id, name, project_id, timestamp, acolumn)
+VALUES ('2f7f1a90-f6a3-4f94-83b6-77bc9e289c2d', 'Demo',
+'da6cf455-971c-46a4-9ed7-fe0e9b5f5548', '2023-03-07 16:57:27.762190 UTC', 'some_data')
 ```
 
 ## Install / Compile from source

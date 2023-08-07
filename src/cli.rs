@@ -21,6 +21,7 @@ pub struct Opt {
     #[structopt(short = "c", long = "col")]
     pub columns: Vec<StringPair>,
 
+    /// Static data insertion in the format column_name=data_to_insert
     #[structopt(short = "s", long = "static", parse(try_from_str = parse_kv))]
     pub static_cols: Option<Vec<(String, String)>>,
 }

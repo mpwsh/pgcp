@@ -18,6 +18,7 @@ export PG_TO_DATABASE=postgres://user:password@other_db:5432/todatabase
 
 The mapping of source to destination tables and columns is done using a simple `source:destination` syntax. It also supports the addition of static `column=value` pairs that will be included in every row transferred.
 A more 'complex' column mapping is demonstrated in the below example, with `metadata_jsons.id/name:collections.id/name` which shows how to map a column from a joined table in the source database, where we get the `name` of the collection based on the `id` from `collections` table.
+The `--update` argument can be used to do a find/replace of a value before inserting it in the destination table.
 
 ## Example
 
@@ -25,6 +26,7 @@ A more 'complex' column mapping is demonstrated in the below example, with `meta
 pgcp --table collections:collections \
 --col id:id --col metadata_jsons.id/name:collections.id/name \
 --col project_id:project_id --col created_at:timestamp \
+--update col_name=from_val:dest_col=replace_with_value
 --static acolumn=some_data
 ```
 
